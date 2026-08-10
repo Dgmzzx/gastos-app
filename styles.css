@@ -109,9 +109,10 @@ h1{
   display:block; font-size:11px; text-transform:uppercase; letter-spacing:0.06em;
   color:var(--ink-soft); margin-bottom:6px; font-weight:600;
 }
-.row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.row2{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px;}
 input, select{
   width:100%;
+  min-width:0;
   font-family:'Inter', sans-serif;
   font-size:16px;
   padding:11px 12px;
@@ -129,6 +130,7 @@ input:focus, select:focus{outline:2px solid var(--green); outline-offset:-1px;}
 input[type=number]::-webkit-outer-spin-button,
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0;}
 input[type=number]{-moz-appearance:textfield; appearance:textfield;}
+input[type=date]{-webkit-appearance:none; appearance:none;}
 
 .chips{display:flex; flex-wrap:wrap; gap:8px;}
 .chip{
