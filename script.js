@@ -9,7 +9,7 @@ const $ = (id) => document.getElementById(id);
 
 function fmt(n){
   const v = Number(n) || 0;
-  return "$" + v.toLocaleString("es-DO", {maximumFractionDigits:0});
+  return "RD$ " + v.toLocaleString("es-DO", {maximumFractionDigits:0});
 }
 
 function todayISO(){
@@ -76,6 +76,10 @@ function renderSummary(data){
   const balEl = $("statBalance");
   balEl.textContent = fmt(data.balance);
   balEl.className = "stat-val " + (data.balance >= 0 ? "pos" : "neg");
+
+  const hb = $("headerBal");
+  hb.textContent = fmt(data.balance);
+  hb.classList.toggle("neg", data.balance < 0);
 
   const pct = Math.min(100, Math.round((data.diasTranscurridos / data.diasTotales) * 100));
   $("dayBar").style.width = pct + "%";

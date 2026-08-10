@@ -5,61 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#E7E6DE">
+<meta name="theme-color" content="#F6F5F2">
 <title>Gastos · Quincena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div>
+    <div class="brand">
       <h1>Gastos</h1>
       <div class="sub" id="periodSub">Quincena actual</div>
     </div>
-    <button class="gear" id="btnSettings" aria-label="Configuración">⚙</button>
+    <div class="header-right">
+      <span class="header-bal" id="headerBal">—</span>
+      <button class="gear" id="btnSettings" aria-label="Configuración">⚙</button>
+    </div>
   </header>
 
-  <div class="card">
-    <h2>Anotar gasto</h2>
-    <div class="field">
-      <label for="monto">Monto</label>
-      <input type="number" id="monto" inputmode="decimal" placeholder="0" min="0" step="0.01">
-    </div>
-    <div class="field">
-      <label>Categoría</label>
-      <div class="chips" id="catChips"></div>
-    </div>
-    <div class="field">
-      <label>Medio de pago</label>
-      <div class="chips" id="medChips"></div>
-    </div>
-    <div class="row2">
-      <div class="field">
-        <label for="fecha">Fecha</label>
-        <input type="date" id="fecha">
-      </div>
-      <div class="field">
-        <label for="nota">Nota</label>
-        <input type="text" id="nota" placeholder="opcional">
+  <div class="grid2">
+    <div class="card" id="summaryCard">
+      <div class="loading" id="summaryLoading">Cargando…</div>
+      <div id="summaryBody" style="display:none;">
+        <div class="hero">
+          <div class="period-dates" id="periodDates"></div>
+          <div class="stat-val" id="statBalance">—</div>
+          <div class="rule-track"><div class="rule-fill" id="dayBar" style="width:0%"></div></div>
+          <div class="rule-caption"><span id="dayCaption">—</span><span id="dayLeft">—</span></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="stat-label">Ingreso</span><span class="stat-val" id="statIngreso">—</span></div>
+          <div class="stat"><span class="stat-label">Gastado</span><span class="stat-val" id="statGastado">—</span></div>
+        </div>
       </div>
     </div>
-    <button class="submit" id="btnSubmit">Anotar gasto</button>
-    <div class="msg" id="formMsg"></div>
-  </div>
 
-  <div class="card" id="summaryCard">
-    <h2>Resumen de la quincena</h2>
-    <div class="loading" id="summaryLoading">Cargando…</div>
-    <div id="summaryBody" style="display:none;">
-      <div class="period-dates" id="periodDates"></div>
-      <div class="stat-row"><span class="stat-label">Ingreso</span><span class="stat-val" id="statIngreso">—</span></div>
-      <div class="stat-row"><span class="stat-label">Gastado</span><span class="stat-val" id="statGastado">—</span></div>
-      <div class="stat-row"><span class="stat-label">Balance</span><span class="stat-val" id="statBalance">—</span></div>
-      <div class="bar-track"><div class="bar-fill" id="dayBar" style="width:0%"></div></div>
-      <div class="bar-caption"><span id="dayCaption">—</span><span id="dayLeft">—</span></div>
+    <div class="card">
+      <h2>Anotar gasto</h2>
+      <div class="field">
+        <label for="monto">Monto</label>
+        <input type="number" id="monto" inputmode="decimal" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <div class="chips" id="catChips"></div>
+      </div>
+      <div class="field">
+        <label>Medio de pago</label>
+        <div class="chips" id="medChips"></div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label for="fecha">Fecha</label>
+          <input type="date" id="fecha">
+        </div>
+        <div class="field">
+          <label for="nota">Nota</label>
+          <input type="text" id="nota" placeholder="opcional">
+        </div>
+      </div>
+      <button class="submit" id="btnSubmit">Anotar gasto</button>
+      <div class="msg" id="formMsg"></div>
     </div>
   </div>
 
@@ -75,7 +83,9 @@
 
   <div class="card">
     <h2>Últimos movimientos</h2>
-    <div id="entriesBody"><div class="empty">Sin datos todavía</div></div>
+    <div id="entriesBody">
+      <div class="empty"><div>Sin movimientos en esta quincena</div><div class="empty-hint">Anotá el primero arriba</div></div>
+    </div>
   </div>
 </div>
 
