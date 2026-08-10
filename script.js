@@ -86,6 +86,19 @@ function renderSummary(data){
   $("dayCaption").textContent = "Día " + data.diasTranscurridos + " de " + data.diasTotales;
   $("dayLeft").textContent = data.diasRestantes + " días restantes";
 
+  const perDia = $("perDia");
+  perDia.classList.remove("neg");
+  if(data.diasRestantes > 0){
+    if(data.balance >= 0){
+      perDia.textContent = fmt(Math.floor(data.balance / data.diasRestantes)) + " por día";
+    }else{
+      perDia.textContent = "Sin margen esta quincena";
+      perDia.classList.add("neg");
+    }
+  }else{
+    perDia.textContent = "";
+  }
+
   if(data.categorias && data.categorias.length){
     $("catCard").style.display = "block";
     const body = $("catBody");

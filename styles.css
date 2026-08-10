@@ -93,6 +93,8 @@ h1{
 .rule-track{height:2px; background:var(--rule); border-radius:2px; overflow:hidden;}
 .rule-fill{height:100%; background:var(--amber); width:0%; transition:width 1s cubic-bezier(.22,.61,.36,1);}
 .rule-caption{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-soft); margin-top:8px;}
+.perdia{margin-top:6px; font-size:12px; color:var(--ink-soft); text-align:right; font-family:'Space Mono', monospace;}
+.perdia.neg{color:var(--red);}
 
 /* stat strip */
 .stats{display:flex; gap:16px; margin-top:22px; padding-top:18px; border-top:1px solid var(--rule);}
@@ -246,6 +248,26 @@ button.submit:focus-visible{outline:2px solid var(--green); outline-offset:2px;}
 @media (min-width:1080px){
   .wrap{max-width:960px;}
   .hero .stat-val{font-size:56px;}
+}
+
+/* dark mode */
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#161816;
+    --surface:#202320;
+    --ink:#EAEAE2;
+    --ink-soft:#9BA09A;
+    --rule:#2E332E;
+    --rule-strong:#3E443E;
+    --green:#3FAE72;
+    --green-soft:#1E3A2B;
+    --red:#E0614F;
+    --red-soft:#3A2320;
+    --amber:#D9A94E;
+    --shadow:0 1px 0 rgba(0,0,0,0.3);
+  }
+  header{background:rgba(22,24,22,0.85);}
+  input, select, .chip{background:var(--surface);}
 }
 
 @media (prefers-reduced-motion: reduce){
