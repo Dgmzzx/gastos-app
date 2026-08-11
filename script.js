@@ -1,4 +1,4 @@
-const CATEGORIAS = ["Comida","Transporte","Vivienda","Educación","Salud","Ropa","Suscripciones","Otros"];
+const CATEGORIAS = ["Comida","Transporte","Vivienda","Educación","Salud","Ropa","Suscripciones","Ahorro","Otros"];
 const MEDIOS = ["Efectivo","Débito","Crédito","Transferencia"];
 const LS_URL_KEY = "gastos_script_url";
 
