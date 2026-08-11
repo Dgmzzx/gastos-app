@@ -246,7 +246,7 @@ async function submitGasto(){
       headers: {"Content-Type":"text/plain;charset=utf-8"},
       body: JSON.stringify(payload)
     });
-    showToast(" Gasto anotado");
+    showToast(" Gasto anotado · " + fmt(monto));
     haptic();
     pendingPop = true;
     $("monto").value = "";
