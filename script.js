@@ -7,6 +7,23 @@ let selectedMed = null;
 
 const $ = (id) => document.getElementById(id);
 
+let pendingPop = false;
+let toastTimer = null;
+
+function showToast(text){
+  const t = $("toast");
+  t.innerHTML = '<div class="toast-inner"><span class="tick">✓</span>' + text + "</div>";
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+function haptic(){
+  try{
+    if(navigator.vibrate) navigator.vibrate([30,40,30]);
+  }catch(e){}
+}
+
 function fmt(n){
   const v = Number(n) || 0;
   return "RD$ " + v.toLocaleString("es-DO", {maximumFractionDigits:0});
@@ -80,6 +97,15 @@ function renderSummary(data){
   const hb = $("headerBal");
   hb.textContent = fmt(data.balance);
   hb.classList.toggle("neg", data.balance < 0);
+
+  if(pendingPop){
+    pendingPop = false;
+    balEl.classList.remove("pop");
+    hb.classList.remove("pop");
+    void balEl.offsetWidth;
+    balEl.classList.add("pop");
+    hb.classList.add("pop");
+  }
 
   const pct = Math.min(100, Math.round((data.diasTranscurridos / data.diasTotales) * 100));
   $("dayBar").style.width = pct + "%";
@@ -220,8 +246,9 @@ async function submitGasto(){
       headers: {"Content-Type":"text/plain;charset=utf-8"},
       body: JSON.stringify(payload)
     });
-    msg.textContent = "Gasto anotado.";
-    msg.classList.add("ok");
+    showToast(" Gasto anotado");
+    haptic();
+    pendingPop = true;
     $("monto").value = "";
     $("nota").value = "";
     $("fecha").value = todayISO();

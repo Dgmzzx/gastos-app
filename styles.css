@@ -219,6 +219,26 @@ button.submit:focus-visible{outline:2px solid var(--green); outline-offset:2px;}
 
 .loading{text-align:center; padding:30px 0; color:var(--ink-soft); font-size:14px;}
 
+/* toast + pop */
+.toast{
+  position:fixed; left:0; right:0; bottom:calc(env(safe-area-inset-bottom,0px) + 24px); z-index:30;
+  display:flex; justify-content:center; pointer-events:none;
+  opacity:0; transform:translateY(12px);
+  transition:opacity .25s ease, transform .25s ease;
+}
+.toast.show{opacity:1; transform:none;}
+.toast-inner{
+  background:var(--ink); color:var(--bg);
+  font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:14px;
+  padding:12px 18px; border-radius:999px;
+  box-shadow:0 6px 20px rgba(25,28,25,0.25);
+  display:flex; align-items:center; gap:8px;
+}
+.toast-inner .tick{color:var(--green); font-weight:700;}
+@keyframes pop{0%{transform:scale(1);} 40%{transform:scale(1.06);} 100%{transform:scale(1);}}
+.stat-val.pop{animation:pop .35s ease;}
+.header-bal.pop{animation:pop .35s ease;}
+
 /* small phones */
 @media (max-width:359px){
   .wrap{padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px));}
