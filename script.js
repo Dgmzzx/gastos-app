@@ -9,6 +9,7 @@ let editingFila = null;
 let editCat = null;
 let editMed = null;
 let pendingDeleteFila = null;
+let pendingPop = false;
 
 const $ = (id) => document.getElementById(id);
 
@@ -85,6 +86,15 @@ function renderSummary(data){
   const hb = $("headerBal");
   hb.textContent = fmt(data.balance);
   hb.classList.toggle("neg", data.balance < 0);
+
+  if(pendingPop){
+    pendingPop = false;
+    balEl.classList.remove("pop");
+    hb.classList.remove("pop");
+    void balEl.offsetWidth;
+    balEl.classList.add("pop");
+    hb.classList.add("pop");
+  }
 
   const pct = Math.min(100, Math.round((data.diasTranscurridos / data.diasTotales) * 100));
   $("dayBar").style.width = pct + "%";
@@ -194,10 +204,16 @@ async function registrarFijo(nombre, btn){
 let toastTimer = null;
 function showToast(text, tick = true){
   const t = $("toast");
-  t.innerHTML = `<div class="toast-inner">${tick ? '<span class="tick">✓</span>' : ""}<span>${text}</span></div>`;
+  t.innerHTML = `<div class="toast-inner">${tick ? '<span class="tick"></span>' : ""}<span>${text}</span></div>`;
   t.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function haptic(){
+  try{
+    if(navigator.vibrate) navigator.vibrate([30,40,30]);
+  }catch(e){}
 }
 
 function markChip(container, value){
@@ -348,8 +364,9 @@ async function submitGasto(){
       headers: {"Content-Type":"text/plain;charset=utf-8"},
       body: JSON.stringify(payload)
     });
-    msg.textContent = "Gasto anotado.";
-    msg.classList.add("ok");
+    showToast(" Gasto anotado · " + fmt(monto));
+    haptic();
+    pendingPop = true;
     $("monto").value = "";
     $("nota").value = "";
     $("fecha").value = todayISO();
