@@ -104,6 +104,46 @@
   </div>
 </div>
 
+<div class="overlay" id="editOverlay">
+  <div class="sheet">
+    <h2>Editar gasto</h2>
+    <div class="field">
+      <label for="editMonto">Monto</label>
+      <input type="number" id="editMonto" inputmode="decimal" min="0" step="0.01">
+    </div>
+    <div class="field">
+      <label>Categoría</label>
+      <div class="chips" id="editCatChips"></div>
+    </div>
+    <div class="field">
+      <label>Medio de pago</label>
+      <div class="chips" id="editMedChips"></div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="editFecha">Fecha</label>
+        <input type="date" id="editFecha">
+      </div>
+      <div class="field">
+        <label for="editNota">Nota</label>
+        <input type="text" id="editNota" placeholder="opcional">
+      </div>
+    </div>
+    <button class="submit" id="btnSaveEdit">Guardar cambios</button>
+    <button class="close" id="btnCloseEdit">Cancelar</button>
+    <div class="msg" id="editMsg"></div>
+  </div>
+</div>
+
+<div class="overlay" id="deleteOverlay">
+  <div class="sheet">
+    <h2>Borrar gasto</h2>
+    <p id="deleteText"></p>
+    <button class="submit danger" id="btnConfirmDelete">Borrar</button>
+    <button class="close" id="btnCancelDelete">Cancelar</button>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="script.js"></script>

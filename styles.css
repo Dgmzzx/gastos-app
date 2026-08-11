@@ -190,6 +190,20 @@ button.submit:focus-visible{outline:2px solid var(--green); outline-offset:2px;}
 .entry-cat{font-size:14px; font-weight:600;}
 .entry-meta{font-size:12px; color:var(--ink-soft); overflow-wrap:anywhere;}
 .entry-amt{font-family:'Space Mono', monospace; font-size:clamp(14px, 4.5vw, 15px); font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;}
+.entry-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
+.entry-actions{display:flex; gap:2px;}
+.btn-icon{
+  background:none; border:none; color:var(--ink-soft); font-size:15px;
+  cursor:pointer; padding:6px; line-height:1; border-radius:6px;
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:38px; min-height:38px;
+}
+.btn-icon:hover{color:var(--ink); background:var(--bg);}
+.btn-icon:focus-visible{outline:2px solid var(--green); outline-offset:-1px;}
+.btn-icon.danger:hover{color:var(--red); background:var(--red-soft);}
+.btn-icon.danger:focus-visible{outline-color:var(--red);}
+button.submit.danger{background:var(--red);}
+button.submit.danger:focus-visible{outline-color:var(--red);}
 .empty{font-size:14px; color:var(--ink-soft); text-align:center; padding:20px 0;}
 .empty-hint{margin-top:4px; font-size:13px;}
 

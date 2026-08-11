@@ -37,6 +37,17 @@ function doPost(e) {
       registrarFijoManual_(body.nombre);
       return jsonResponse({ ok: true });
     }
+    if (body.action === "borrarGasto") {
+      const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_GASTOS);
+      const fila = Number(body.fila);
+      if (!fila || fila < 5) throw new Error("fila inválida");
+      sh.deleteRow(fila);
+      return jsonResponse({ ok: true });
+    }
+    if (body.action === "editarGasto") {
+      editarGasto_(body);
+      return jsonResponse({ ok: true });
+    }
     appendGasto(body);
     return jsonResponse({ ok: true });
   } catch (err) {
@@ -189,7 +200,7 @@ function buildResumen() {
 
   if (lastRow >= 5) {
     const data = sh.getRange(5, 1, lastRow - 4, 6).getValues(); // A:F
-    data.forEach(row => {
+    data.forEach((row, i) => {
       const fecha = row[1];
       const monto = Number(row[2]) || 0;
       const categoria = row[3];
@@ -201,9 +212,12 @@ function buildResumen() {
         if (porCategoria.hasOwnProperty(categoria)) porCategoria[categoria] += monto;
       }
       recientes.push({
+        fila: i + 5,
         fecha: Utilities.formatDate(fecha, tz, "dd/MM"),
+        fechaISO: Utilities.formatDate(fecha, tz, "yyyy-MM-dd"),
         monto: monto,
         categoria: categoria,
+        medio: row[4],
         nota: nota
       });
     });
@@ -238,6 +252,23 @@ function buildResumen() {
     fijos: fijos,
     recientes: recientes.slice(-15)
   };
+}
+
+function editarGasto_(body) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_GASTOS);
+  const fila = Number(body.fila);
+  if (!fila || fila < 5) throw new Error("fila inválida");
+  const cfg = getConfig_();
+  const fecha = new Date(body.fecha + "T00:00:00");
+  const monto = Number(body.monto) || 0;
+  if (!monto) throw new Error("monto inválido");
+  const categoria = body.categoria || "";
+  const medio = body.medio || "";
+  const nota = body.nota || "";
+  const periodo = periodLabelForDate_(fecha, cfg.dia1, cfg.dia2);
+  sh.getRange(fila, 2, 1, 6).setValues([[
+    fecha, monto, categoria, medio, nota, periodo
+  ]]);
 }
 
 function appendGasto(body) {

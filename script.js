@@ -4,6 +4,11 @@ const LS_URL_KEY = "gastos_script_url";
 
 let selectedCat = null;
 let selectedMed = null;
+let recientes = [];
+let editingFila = null;
+let editCat = null;
+let editMed = null;
+let pendingDeleteFila = null;
 
 const $ = (id) => document.getElementById(id);
 
@@ -144,9 +149,10 @@ function renderSummary(data){
   }
 
   if(data.recientes && data.recientes.length){
+    recientes = data.recientes.slice();
     const body = $("entriesBody");
     body.innerHTML = "";
-    data.recientes.slice().reverse().forEach(e => {
+    recientes.slice().reverse().forEach(e => {
       const div = document.createElement("div");
       div.className = "entry";
       div.innerHTML = `
@@ -154,7 +160,13 @@ function renderSummary(data){
           <span class="entry-cat">${e.categoria}</span>
           <span class="entry-meta">${e.fecha}${e.nota ? " · " + e.nota : ""}</span>
         </div>
-        <span class="entry-amt">${fmt(e.monto)}</span>
+        <div class="entry-right">
+          <span class="entry-amt">${fmt(e.monto)}</span>
+          <span class="entry-actions">
+            <button type="button" class="btn-icon" data-action="editar" data-fila="${e.fila}" aria-label="Editar">✎</button>
+            <button type="button" class="btn-icon danger" data-action="borrar" data-fila="${e.fila}" aria-label="Eliminar">✕</button>
+          </span>
+        </div>
       `;
       body.appendChild(div);
     });
@@ -176,6 +188,122 @@ async function registrarFijo(nombre, btn){
   }catch(err){
     btn.disabled = false;
     btn.textContent = "Reintentar";
+  }
+}
+
+let toastTimer = null;
+function showToast(text, tick = true){
+  const t = $("toast");
+  t.innerHTML = `<div class="toast-inner">${tick ? '<span class="tick">✓</span>' : ""}<span>${text}</span></div>`;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function markChip(container, value){
+  [...container.children].forEach(c => c.classList.toggle("active", c.textContent === (value || "")));
+}
+
+function openEdit(fila, e){
+  editingFila = fila;
+  editCat = e.categoria;
+  editMed = e.medio || "";
+  $("editMonto").value = e.monto;
+  $("editFecha").value = e.fechaISO || todayISO();
+  $("editNota").value = e.nota || "";
+  markChip($("editCatChips"), editCat);
+  markChip($("editMedChips"), editMed);
+  $("editMsg").textContent = "";
+  $("editMsg").className = "msg";
+  $("editOverlay").classList.add("show");
+}
+
+function closeEdit(){
+  $("editOverlay").classList.remove("show");
+}
+
+async function saveEdit(){
+  const url = getScriptUrl();
+  const msg = $("editMsg");
+  msg.textContent = "";
+  msg.className = "msg";
+
+  const monto = parseFloat($("editMonto").value);
+  if(!url){
+    msg.textContent = "Primero conectá tu Google Sheet (ícono de arriba).";
+    msg.classList.add("err");
+    return;
+  }
+  if(!monto || monto <= 0){
+    msg.textContent = "Ingresá un monto válido.";
+    msg.classList.add("err");
+    return;
+  }
+  if(!editCat){
+    msg.textContent = "Elegí una categoría.";
+    msg.classList.add("err");
+    return;
+  }
+
+  const btn = $("btnSaveEdit");
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({
+        action: "editarGasto",
+        fila: editingFila,
+        monto: monto,
+        categoria: editCat,
+        medio: editMed || "",
+        fecha: $("editFecha").value || todayISO(),
+        nota: $("editNota").value || ""
+      })
+    });
+    closeEdit();
+    loadSummary();
+    showToast("Gasto actualizado");
+  }catch(err){
+    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.classList.add("err");
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Guardar cambios";
+  }
+}
+
+function askDelete(fila, e){
+  pendingDeleteFila = fila;
+  $("deleteText").textContent = `¿Borrar "${e.categoria}" por ${fmt(e.monto)} del ${e.fecha}?`;
+  $("deleteOverlay").classList.add("show");
+}
+
+function closeDelete(){
+  pendingDeleteFila = null;
+  $("deleteOverlay").classList.remove("show");
+}
+
+async function confirmDelete(){
+  const url = getScriptUrl();
+  if(!url || !pendingDeleteFila) return;
+  const btn = $("btnConfirmDelete");
+  btn.disabled = true;
+  btn.textContent = "Borrando…";
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({action: "borrarGasto", fila: pendingDeleteFila})
+    });
+    closeDelete();
+    loadSummary();
+    showToast("Gasto borrado");
+  }catch(err){
+    btn.disabled = false;
+    btn.textContent = "Borrar";
   }
 }
 
@@ -237,6 +365,8 @@ async function submitGasto(){
 
 buildChips($("catChips"), CATEGORIAS, (v)=>selectedCat=v);
 buildChips($("medChips"), MEDIOS, (v)=>selectedMed=v);
+buildChips($("editCatChips"), CATEGORIAS, (v)=>editCat=v);
+buildChips($("editMedChips"), MEDIOS, (v)=>editMed=v);
 $("fecha").value = todayISO();
 
 $("btnSettings").addEventListener("click", openSettings);
@@ -247,5 +377,19 @@ $("btnSaveUrl").addEventListener("click", () => {
   loadSummary();
 });
 $("btnSubmit").addEventListener("click", submitGasto);
+$("btnSaveEdit").addEventListener("click", saveEdit);
+$("btnCloseEdit").addEventListener("click", closeEdit);
+$("btnConfirmDelete").addEventListener("click", confirmDelete);
+$("btnCancelDelete").addEventListener("click", closeDelete);
+
+$("entriesBody").addEventListener("click", (ev) => {
+  const btn = ev.target.closest("[data-action]");
+  if(!btn) return;
+  const fila = Number(btn.dataset.fila);
+  const entry = recientes.find(e => e.fila === fila);
+  if(!entry) return;
+  if(btn.dataset.action === "editar") openEdit(fila, entry);
+  else if(btn.dataset.action === "borrar") askDelete(fila, entry);
+});
 
 loadSummary();
