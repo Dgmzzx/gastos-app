@@ -187,7 +187,8 @@ function buildResumen() {
   const mk = currentMonthKey_(today);
 
   const diasTotales = Math.round((bounds.end - bounds.start) / 86400000) + 1;
-  let diasTranscurridos = Math.round((today - bounds.start) / 86400000) + 1;
+  const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let diasTranscurridos = Math.round((todayMid - bounds.start) / 86400000) + 1;
   diasTranscurridos = Math.max(1, Math.min(diasTotales, diasTranscurridos));
   const diasRestantes = diasTotales - diasTranscurridos;
 
