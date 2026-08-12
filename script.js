@@ -79,6 +79,25 @@ function renderSummary(data){
 
   $("statIngreso").textContent = fmt(data.ingreso);
   $("statGastado").textContent = fmt(data.gastado);
+
+  const deltaEl = $("statDelta");
+  if(data.prevGastado > 0){
+    const abs = Math.abs(data.deltaGastado);
+    const absPct = Math.abs(data.pctCambio || 0);
+    if(data.deltaGastado > 0){
+      deltaEl.textContent = `↑ ${fmt(abs)} (+${absPct}%) vs anterior`;
+      deltaEl.className = "stat-delta neg";
+    }else if(data.deltaGastado < 0){
+      deltaEl.textContent = `↓ ${fmt(abs)} (−${absPct}%) vs anterior`;
+      deltaEl.className = "stat-delta pos";
+    }else{
+      deltaEl.textContent = "igual que la anterior";
+      deltaEl.className = "stat-delta";
+    }
+  }else{
+    deltaEl.textContent = "sin datos previos";
+    deltaEl.className = "stat-delta muted";
+  }
   const balEl = $("statBalance");
   balEl.textContent = fmt(data.balance);
   balEl.className = "stat-val " + (data.balance >= 0 ? "pos" : "neg");
@@ -123,10 +142,19 @@ function renderSummary(data){
       div.className = "catbar";
       const pctCat = c.presupuesto > 0 ? Math.min(100, Math.round((c.gastado / c.presupuesto)*100)) : 0;
       const over = c.presupuesto > 0 && c.gastado > c.presupuesto;
+      const diff = (c.gastado || 0) - (c.prev || 0);
+      let deltaHtml = "";
+      if(c.prev > 0 && diff !== 0){
+        const cls = diff > 0 ? "neg" : "pos";
+        const arrow = diff > 0 ? "↑" : "↓";
+        deltaHtml = `<span class="catbar-delta ${cls}">${arrow} ${fmt(Math.abs(diff))}</span>`;
+      }else if(c.prev === 0 && (c.gastado || 0) > 0){
+        deltaHtml = `<span class="catbar-delta">nuevo</span>`;
+      }
       div.innerHTML = `
         <div class="catbar-top">
           <span class="catbar-name">${c.nombre}</span>
-          <span class="catbar-nums">${fmt(c.gastado)} / ${fmt(c.presupuesto)}</span>
+          <span class="catbar-nums">${fmt(c.gastado)} / ${fmt(c.presupuesto)}${deltaHtml}</span>
         </div>
         <div class="catbar-track"><div class="catbar-fill ${over ? 'over':''}" style="width:${pctCat}%"></div></div>
       `;

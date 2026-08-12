@@ -102,6 +102,10 @@ h1{
 .stat + .stat{padding-left:16px; border-left:1px solid var(--rule);}
 .stat-label{font-size:12px; color:var(--ink-soft); white-space:nowrap;}
 .stats .stat-val{font-family:'Space Mono', monospace; font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;}
+.stat-delta{font-size:11px; color:var(--ink-soft); font-weight:600; white-space:nowrap;}
+.stat-delta.pos{color:var(--green);}
+.stat-delta.neg{color:var(--red);}
+.stat-delta.muted{color:var(--ink-soft);}
 
 /* form */
 .field{margin-bottom:14px;}
@@ -162,6 +166,9 @@ button.submit:focus-visible{outline:2px solid var(--green); outline-offset:2px;}
 .catbar-top{display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 8px; font-size:13px; margin-bottom:6px;}
 .catbar-name{font-weight:600;}
 .catbar-nums{font-family:'Space Mono', monospace; color:var(--ink-soft); font-size:12px;}
+.catbar-delta{margin-left:8px;}
+.catbar-delta.pos{color:var(--green);}
+.catbar-delta.neg{color:var(--red);}
 .catbar-track{height:4px; background:var(--rule); border-radius:4px; overflow:hidden;}
 .catbar-fill{height:100%; background:var(--green); transition:width .6s ease;}
 .catbar-fill.over{background:var(--red);}

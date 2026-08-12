@@ -114,6 +114,19 @@ function periodLabelForDate_(d, dia1, dia2) {
   }
 }
 
+function prevPeriodLabel_(label) {
+  const m = label.match(/^(\d{4})-(\d{2})-([AB])$/);
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  if (m[3] === "B") return y + "-" + pad2_(mo) + "-A";
+  const d = new Date(y, mo - 2, 1);
+  return d.getFullYear() + "-" + pad2_(d.getMonth() + 1) + "-B";
+}
+
+function pad2_(n) {
+  return String(n).padStart(2, "0");
+}
+
 function currentMonthKey_(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
 }
@@ -184,6 +197,7 @@ function buildResumen() {
   const tz = Session.getScriptTimeZone();
   const today = new Date();
   const bounds = periodBounds_(today, cfg.dia1, cfg.dia2);
+  const prevLabel = prevPeriodLabel_(bounds.label);
   const mk = currentMonthKey_(today);
 
   const diasTotales = Math.round((bounds.end - bounds.start) / 86400000) + 1;
@@ -195,8 +209,10 @@ function buildResumen() {
   const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_GASTOS);
   const lastRow = sh.getLastRow();
   let gastado = 0;
+  let prevGastado = 0;
   const porCategoria = {};
-  cfg.categorias.forEach(c => porCategoria[c.nombre] = 0);
+  const prevPorCategoria = {};
+  cfg.categorias.forEach(c => { porCategoria[c.nombre] = 0; prevPorCategoria[c.nombre] = 0; });
   const recientes = [];
 
   if (lastRow >= 5) {
@@ -211,6 +227,9 @@ function buildResumen() {
       if (label === bounds.label) {
         gastado += monto;
         if (porCategoria.hasOwnProperty(categoria)) porCategoria[categoria] += monto;
+      } else if (label === prevLabel) {
+        prevGastado += monto;
+        if (prevPorCategoria.hasOwnProperty(categoria)) prevPorCategoria[categoria] += monto;
       }
       recientes.push({
         fila: i + 5,
@@ -227,8 +246,12 @@ function buildResumen() {
   const categorias = cfg.categorias.map(c => ({
     nombre: c.nombre,
     presupuesto: c.presupuesto,
-    gastado: porCategoria[c.nombre] || 0
+    gastado: porCategoria[c.nombre] || 0,
+    prev: prevPorCategoria[c.nombre] || 0
   }));
+
+  const deltaGastado = gastado - prevGastado;
+  const pctCambio = prevGastado > 0 ? Math.round((deltaGastado / prevGastado) * 100) : null;
 
   const fijos = getFijos_()
     .filter(f => f.activo)
@@ -245,6 +268,9 @@ function buildResumen() {
     rangoTexto: Utilities.formatDate(bounds.start, tz, "dd MMM") + " – " + Utilities.formatDate(bounds.end, tz, "dd MMM"),
     ingreso: cfg.ingreso,
     gastado: gastado,
+    prevGastado: prevGastado,
+    deltaGastado: deltaGastado,
+    pctCambio: pctCambio,
     balance: cfg.ingreso - gastado,
     diasTotales: diasTotales,
     diasTranscurridos: diasTranscurridos,
