@@ -18,7 +18,7 @@
   <header>
     <div class="brand">
       <h1>Gastos</h1>
-      <div class="sub" id="periodSub">Quincena actual</div>
+      <div class="sub" id="periodSub">Período actual</div>
     </div>
     <div class="header-right">
       <span class="header-bal" id="headerBal">—</span>
@@ -93,14 +93,107 @@
 
 <div class="overlay" id="settingsOverlay">
   <div class="sheet">
-    <h2>Conectar tu Google Sheet</h2>
-    <p>Pegá acá la URL de tu Apps Script publicado como Web App (termina en <code>/exec</code>). Se guarda solo en este teléfono.</p>
-    <div class="field">
-      <label for="scriptUrl">URL del Web App</label>
-      <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <h2>Configuración</h2>
+    <p>Conectá tu Google Sheet y manejá ingreso, categorías y gastos fijos desde acá.</p>
+    <div class="sheet-scroll">
+      <section class="sec">
+        <h3>Conexión</h3>
+        <div class="field">
+          <label for="scriptUrl">URL del Web App</label>
+          <input type="url" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <button class="submit" id="btnSaveUrl">Guardar</button>
+      </section>
+
+      <section class="sec">
+        <h3>Moneda</h3>
+        <div class="field">
+          <label for="cfgCurrency">Moneda</label>
+          <select id="cfgCurrency">
+            <option value="RD">RD$ — Peso dominicano</option>
+            <option value="US">US$ — Dólar</option>
+          </select>
+        </div>
+        <p>Se guarda solo en este dispositivo.</p>
+      </section>
+
+      <section class="sec">
+        <h3>Ingreso y presupuestos</h3>
+        <div class="field">
+          <label for="cfgModo">Modo de cobro</label>
+          <select id="cfgModo">
+            <option value="quincenal">Quincenal (2 cobros por mes)</option>
+            <option value="mensual">Mensual (1 cobro por mes)</option>
+          </select>
+        </div>
+        <div class="row2">
+          <div class="field" id="cfgIngresoField">
+            <label for="cfgIngreso">Ingreso quincenal</label>
+            <input type="number" id="cfgIngreso" inputmode="decimal" min="0" step="0.01">
+          </div>
+          <div class="field" id="cfgIngresoMesField">
+            <label for="cfgIngresoMensual">Ingreso mensual</label>
+            <input type="number" id="cfgIngresoMensual" inputmode="decimal" min="0" step="0.01">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="cfgDia1" id="cfgDia1Label">Día de cobro 1</label>
+            <input type="number" id="cfgDia1" min="1" max="28">
+          </div>
+          <div class="field" id="cfgDia2Field">
+            <label for="cfgDia2">Día de cobro 2</label>
+            <input type="number" id="cfgDia2" min="1" max="28">
+          </div>
+        </div>
+        <label class="sec-label">Categorías y presupuesto</label>
+        <div id="cfgCats"></div>
+        <button class="add-row" id="btnAddCat">+ Agregar categoría</button>
+        <button class="submit" id="btnSaveConfig">Guardar configuración</button>
+        <div class="msg" id="cfgMsg"></div>
+      </section>
+
+      <section class="sec">
+        <h3>Gastos fijos</h3>
+        <div id="cfgFijos"></div>
+        <button class="add-row" id="btnAddFijo">+ Agregar gasto fijo</button>
+        <div class="msg" id="cfgFijosMsg"></div>
+      </section>
     </div>
-    <button class="submit" id="btnSaveUrl">Guardar</button>
     <button class="close" id="btnCloseSettings">Cerrar</button>
+  </div>
+</div>
+
+<div class="overlay" id="fijoOverlay">
+  <div class="sheet">
+    <h2 id="fijoTitle">Agregar gasto fijo</h2>
+    <div class="field">
+      <label for="fijoNombre">Nombre</label>
+      <input type="text" id="fijoNombre" placeholder="Alquiler, streaming…">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="fijoMonto">Monto</label>
+        <input type="number" id="fijoMonto" inputmode="decimal" min="0" step="0.01">
+      </div>
+      <div class="field">
+        <label for="fijoDia">Día de cobro</label>
+        <input type="number" id="fijoDia" min="1" max="28" value="1">
+      </div>
+    </div>
+    <div class="field">
+      <label>Categoría</label>
+      <div class="chips" id="fijoCatChips"></div>
+    </div>
+    <label class="switch-label">Activo
+      <label class="switch">
+        <input type="checkbox" id="fijoActivo" checked>
+        <span></span>
+      </label>
+    </label>
+    <button class="submit" id="btnSaveFijo">Guardar</button>
+    <button class="close" id="btnCloseFijo">Cancelar</button>
+    <div class="msg" id="fijoMsg"></div>
   </div>
 </div>
 

@@ -10,7 +10,9 @@ subís a GitHub Pages gratis, y el "servidor" es un Google Apps Script gratis.
 2. Abrilo con Google Sheets (clic derecho > Abrir con > Google Sheets).
    Debe quedar con las pestañas **Config** y **Gastos**.
 3. En **Config**, completá tu ingreso quincenal fijo (celda B4) y, si
-   querés, un presupuesto por categoría.
+   querés, un presupuesto por categoría. Si cobrás **una vez por mes**,
+   poné tu ingreso mensual en B5 y el modo en B8 (`mensual`). Todo esto
+   también se puede editar desde la web (ícono ⚙ > "Ingreso y presupuestos").
 
 ## Paso 2 — Conectar el backend (Google Apps Script)
 
@@ -72,5 +74,7 @@ a ver un botón "Registrar ahora" junto a ese gasto fijo.
   nadie más la ve a menos que la compartas.
 - Si algún día cambiás de Sheet, solo tenés que republicar el Apps Script
   apuntando al nuevo archivo y actualizar la URL en el ⚙ de la web.
-- Los presupuestos y el ingreso los editás siempre desde **Config** en el
-  Sheet, no desde la web.
+- Los presupuestos, el ingreso, las categorías y los gastos fijos también se
+  editan desde la web (ícono ⚙ > "Ingreso y presupuestos" / "Gastos fijos").
+- Para que esos cambios funcionen, republicá el Apps Script: **Implementar >
+  Administrar implementaciones > lápiz > Nueva versión**.

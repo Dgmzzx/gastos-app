@@ -1,6 +1,10 @@
-const CATEGORIAS = ["Comida","Transporte","Vivienda","Educación","Salud","Ropa","Suscripciones","Ahorro","Otros"];
 const MEDIOS = ["Efectivo","Débito","Crédito","Transferencia"];
 const LS_URL_KEY = "gastos_script_url";
+const LS_CURRENCY_KEY = "gastos_currency";
+const CURRENCIES = {
+  RD: { code: "RD$", locale: "es-DO" },
+  US: { code: "$", locale: "en-US" }
+};
 
 let selectedCat = null;
 let selectedMed = null;
@@ -10,12 +14,21 @@ let editCat = null;
 let editMed = null;
 let pendingDeleteFila = null;
 let pendingPop = false;
+let categorias = [];
+let fijosCfg = [];
+let editingFijoFila = null;
+let fijoCat = null;
 
 const $ = (id) => document.getElementById(id);
 
+function getCurrency(){
+  return localStorage.getItem(LS_CURRENCY_KEY) || "RD";
+}
+
 function fmt(n){
   const v = Number(n) || 0;
-  return "RD$ " + v.toLocaleString("es-DO", {maximumFractionDigits:0});
+  const c = CURRENCIES[getCurrency()] || CURRENCIES.RD;
+  return c.code + " " + v.toLocaleString(c.locale, {maximumFractionDigits:0});
 }
 
 function todayISO(){
@@ -41,13 +54,29 @@ function buildChips(container, options, onPick){
   });
 }
 
+function rebuildChips(){
+  const names = categorias.map(c => c.nombre);
+  buildChips($("catChips"), names, (v)=>selectedCat=v);
+  buildChips($("editCatChips"), names, (v)=>editCat=v);
+  buildChips($("fijoCatChips"), names, (v)=>fijoCat=v);
+  buildChips($("medChips"), MEDIOS, (v)=>selectedMed=v);
+  buildChips($("editMedChips"), MEDIOS, (v)=>editMed=v);
+  if(selectedCat && names.includes(selectedCat)) markChip($("catChips"), selectedCat);
+  if(editCat && names.includes(editCat)) markChip($("editCatChips"), editCat);
+  if(fijoCat && names.includes(fijoCat)) markChip($("fijoCatChips"), fijoCat);
+  if(selectedMed && MEDIOS.includes(selectedMed)) markChip($("medChips"), selectedMed);
+  if(editMed && MEDIOS.includes(editMed)) markChip($("editMedChips"), editMed);
+}
+
 function getScriptUrl(){
   return localStorage.getItem(LS_URL_KEY) || "";
 }
 
 function openSettings(){
   $("scriptUrl").value = getScriptUrl();
+  $("cfgCurrency").value = getCurrency();
   $("settingsOverlay").classList.add("show");
+  loadSettingsData();
 }
 function closeSettings(){
   $("settingsOverlay").classList.remove("show");
@@ -209,6 +238,8 @@ function renderSummary(data){
       body.appendChild(div);
     });
   }
+  categorias = data.categorias || [];
+  rebuildChips();
 }
 
 async function registrarFijo(nombre, btn){
@@ -408,24 +439,333 @@ async function submitGasto(){
   }
 }
 
-buildChips($("catChips"), CATEGORIAS, (v)=>selectedCat=v);
-buildChips($("medChips"), MEDIOS, (v)=>selectedMed=v);
-buildChips($("editCatChips"), CATEGORIAS, (v)=>editCat=v);
-buildChips($("editMedChips"), MEDIOS, (v)=>editMed=v);
+/* ---------------- Gestión desde la web ---------------- */
+
+async function loadSettingsData(){
+  const url = getScriptUrl();
+  if(!url) return;
+  try{
+    const res = await fetch(url + "?action=configWeb");
+    const data = await res.json();
+    fijosCfg = data.fijos || [];
+    renderConfigForm(data);
+    renderFijosList(fijosCfg);
+  }catch(err){
+    $("cfgMsg").textContent = "No se pudo cargar la configuración.";
+    $("cfgMsg").className = "msg err";
+  }
+}
+
+function renderConfigForm(data){
+  $("cfgModo").value = data.modo || "quincenal";
+  $("cfgIngreso").value = data.ingreso || "";
+  $("cfgIngresoMensual").value = data.ingresoMensual || "";
+  $("cfgDia1").value = data.dia1 || "";
+  $("cfgDia2").value = data.dia2 || "";
+  setModoUI(data.modo || "quincenal");
+  const body = $("cfgCats");
+  body.innerHTML = "";
+  const list = (data.categorias && data.categorias.length) ? data.categorias : [{nombre:"", presupuesto:""}];
+  list.forEach(c => addCatRow(c.nombre, c.presupuesto));
+}
+
+function setModoUI(modo){
+  const mensual = modo === "mensual";
+  $("cfgIngresoField").style.display = mensual ? "none" : "";
+  $("cfgIngresoMesField").style.display = mensual ? "" : "none";
+  $("cfgDia2Field").style.display = mensual ? "none" : "";
+  $("cfgDia1Label").textContent = mensual ? "Día de cobro" : "Día de cobro 1";
+}
+
+function addCatRow(nombre, presupuesto){
+  const body = $("cfgCats");
+  const row = document.createElement("div");
+  row.className = "cfg-cat-row";
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameInput.className = "cfg-cat-name";
+  nameInput.placeholder = "Categoría";
+  nameInput.value = nombre || "";
+  const budgetInput = document.createElement("input");
+  budgetInput.type = "number";
+  budgetInput.className = "cfg-cat-budget";
+  budgetInput.inputMode = "decimal";
+  budgetInput.min = "0";
+  budgetInput.step = "0.01";
+  budgetInput.placeholder = "Presupuesto";
+  budgetInput.value = presupuesto || "";
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "cfg-del";
+  del.setAttribute("aria-label", "Quitar categoría");
+  del.textContent = "✕";
+  row.appendChild(nameInput);
+  row.appendChild(budgetInput);
+  row.appendChild(del);
+  body.appendChild(row);
+  updateCatRemoveButtons();
+}
+
+function updateCatRemoveButtons(){
+  const rows = $("cfgCats").children;
+  const single = rows.length <= 1;
+  [...rows].forEach(row => {
+    row.querySelector(".cfg-del").style.visibility = single ? "hidden" : "visible";
+  });
+}
+
+async function saveConfig(){
+  const url = getScriptUrl();
+  const msg = $("cfgMsg");
+  msg.textContent = "";
+  msg.className = "msg";
+  if(!url){
+    msg.textContent = "Primero conectá tu Google Sheet.";
+    msg.className = "msg err";
+    return;
+  }
+  const cats = [];
+  let invalid = false;
+  [...$("cfgCats").children].forEach(row => {
+    const nombre = row.querySelector(".cfg-cat-name").value.trim();
+    const presupuesto = Number(row.querySelector(".cfg-cat-budget").value) || 0;
+    if(!nombre){ invalid = true; return; }
+    cats.push({ nombre, presupuesto });
+  });
+  if(invalid){
+    msg.textContent = "Completá el nombre de cada categoría.";
+    msg.className = "msg err";
+    return;
+  }
+  const modo = $("cfgModo").value;
+  const ingreso = Number($("cfgIngreso").value) || 0;
+  const ingresoMensual = Number($("cfgIngresoMensual").value) || 0;
+  const dia1 = Number($("cfgDia1").value) || 10;
+  const dia2 = Number($("cfgDia2").value) || 24;
+  const btn = $("btnSaveConfig");
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ action:"guardarConfig", modo, ingreso, ingresoMensual, dia1, dia2, categorias: cats })
+    });
+    msg.textContent = "Configuración guardada.";
+    msg.className = "msg ok";
+    loadSettingsData();
+    loadSummary();
+    showToast("Configuración guardada");
+  }catch(err){
+    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.className = "msg err";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Guardar configuración";
+  }
+}
+
+function renderFijosList(fijos){
+  const body = $("cfgFijos");
+  body.innerHTML = "";
+  if(!fijos.length){
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.innerHTML = `<div>No hay gastos fijos</div><div class="empty-hint">Agregá el primero acá abajo</div>`;
+    body.appendChild(empty);
+    return;
+  }
+  fijos.forEach(f => {
+    const div = document.createElement("div");
+    div.className = "cfg-fijo-row";
+    const estado = f.activo ? "" : `<span class="pill off">Inactivo</span>`;
+    div.innerHTML = `
+      <div class="cfg-fijo-info">
+        <span class="cfg-fijo-name">${f.nombre} ${estado}</span>
+        <span class="cfg-fijo-meta">${f.categoria || "sin categoría"} · día ${f.dia} · ${fmt(f.monto)}</span>
+      </div>
+      <div class="cfg-fijo-actions">
+        <label class="switch" title="Activo">
+          <input type="checkbox" class="cfg-fijo-activo" data-fila="${f.rowIndex}" ${f.activo ? "checked" : ""}>
+          <span></span>
+        </label>
+        <button type="button" class="btn-icon" data-fijo-edit="${f.rowIndex}" aria-label="Editar">✎</button>
+        <button type="button" class="btn-icon danger" data-fijo-del="${f.rowIndex}" aria-label="Borrar">✕</button>
+      </div>
+    `;
+    body.appendChild(div);
+  });
+}
+
+async function toggleFijoActivo(fila, activo){
+  const url = getScriptUrl();
+  if(!url) return;
+  const f = fijosCfg.find(x => x.rowIndex === fila);
+  if(!f) return;
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({
+        action: "editarFijo",
+        fila: fila,
+        nombre: f.nombre,
+        monto: f.monto,
+        categoria: f.categoria,
+        dia: f.dia,
+        activo: activo
+      })
+    });
+    f.activo = activo;
+    loadSummary();
+  }catch(err){
+    renderFijosList(fijosCfg);
+  }
+}
+
+function openFijoForm(fila){
+  editingFijoFila = fila || null;
+  const f = fila ? fijosCfg.find(x => x.rowIndex === fila) : null;
+  $("fijoTitle").textContent = f ? "Editar gasto fijo" : "Agregar gasto fijo";
+  $("fijoNombre").value = f ? f.nombre : "";
+  $("fijoMonto").value = f ? f.monto : "";
+  $("fijoDia").value = f ? f.dia : 1;
+  $("fijoActivo").checked = f ? f.activo : true;
+  fijoCat = f ? f.categoria : null;
+  markChip($("fijoCatChips"), fijoCat);
+  $("fijoMsg").textContent = "";
+  $("fijoMsg").className = "msg";
+  $("fijoOverlay").classList.add("show");
+}
+
+async function saveFijo(){
+  const url = getScriptUrl();
+  const msg = $("fijoMsg");
+  msg.textContent = "";
+  msg.className = "msg";
+  if(!url){
+    msg.textContent = "Primero conectá tu Google Sheet.";
+    msg.className = "msg err";
+    return;
+  }
+  const nombre = $("fijoNombre").value.trim();
+  const monto = parseFloat($("fijoMonto").value);
+  const dia = Number($("fijoDia").value) || 1;
+  if(!nombre){
+    msg.textContent = "Ingresá un nombre.";
+    msg.className = "msg err";
+    return;
+  }
+  if(!monto || monto <= 0){
+    msg.textContent = "Ingresá un monto válido.";
+    msg.className = "msg err";
+    return;
+  }
+  const payload = {
+    action: editingFijoFila ? "editarFijo" : "agregarFijo",
+    nombre: nombre,
+    monto: monto,
+    dia: dia,
+    categoria: fijoCat || "",
+    activo: $("fijoActivo").checked
+  };
+  if(editingFijoFila) payload.fila = editingFijoFila;
+  const btn = $("btnSaveFijo");
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify(payload)
+    });
+    $("fijoOverlay").classList.remove("show");
+    loadSettingsData();
+    loadSummary();
+    showToast(editingFijoFila ? "Gasto fijo actualizado" : "Gasto fijo agregado");
+  }catch(err){
+    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.className = "msg err";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
+
+async function borrarFijo(fila){
+  const url = getScriptUrl();
+  if(!url) return;
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ action: "borrarFijo", fila: fila })
+    });
+    loadSettingsData();
+    loadSummary();
+    showToast("Gasto fijo borrado");
+  }catch(err){
+    $("cfgFijosMsg").textContent = "No se pudo borrar.";
+    $("cfgFijosMsg").className = "msg err";
+  }
+}
+
+rebuildChips();
 $("fecha").value = todayISO();
 
 $("btnSettings").addEventListener("click", openSettings);
 $("btnCloseSettings").addEventListener("click", closeSettings);
+$("cfgCurrency").addEventListener("change", (ev) => {
+  localStorage.setItem(LS_CURRENCY_KEY, ev.target.value);
+  loadSummary();
+  showToast(ev.target.value === "US" ? "Moneda: US$" : "Moneda: RD$");
+});
 $("btnSaveUrl").addEventListener("click", () => {
   localStorage.setItem(LS_URL_KEY, $("scriptUrl").value.trim());
   closeSettings();
   loadSummary();
 });
+$("btnAddCat").addEventListener("click", () => {
+  if($("cfgCats").children.length >= 8){
+    $("cfgMsg").textContent = "Máximo 8 categorías.";
+    $("cfgMsg").className = "msg err";
+    return;
+  }
+  addCatRow();
+  $("cfgMsg").textContent = "";
+  $("cfgMsg").className = "msg";
+});
+$("btnSaveConfig").addEventListener("click", saveConfig);
+$("cfgModo").addEventListener("change", (ev) => setModoUI(ev.target.value));
+$("btnAddFijo").addEventListener("click", () => openFijoForm());
+$("btnSaveFijo").addEventListener("click", saveFijo);
+$("btnCloseFijo").addEventListener("click", () => $("fijoOverlay").classList.remove("show"));
 $("btnSubmit").addEventListener("click", submitGasto);
 $("btnSaveEdit").addEventListener("click", saveEdit);
 $("btnCloseEdit").addEventListener("click", closeEdit);
 $("btnConfirmDelete").addEventListener("click", confirmDelete);
 $("btnCancelDelete").addEventListener("click", closeDelete);
+
+$("cfgCats").addEventListener("click", (ev) => {
+  const del = ev.target.closest(".cfg-del");
+  if(!del) return;
+  del.closest(".cfg-cat-row").remove();
+  updateCatRemoveButtons();
+  $("cfgMsg").textContent = "";
+  $("cfgMsg").className = "msg";
+});
+
+$("cfgFijos").addEventListener("click", (ev) => {
+  const del = ev.target.closest("[data-fijo-del]");
+  if(del) return borrarFijo(Number(del.dataset.fijoDel));
+  const edit = ev.target.closest("[data-fijo-edit]");
+  if(edit) return openFijoForm(Number(edit.dataset.fijoEdit));
+});
+
+$("cfgFijos").addEventListener("change", (ev) => {
+  const t = ev.target.closest(".cfg-fijo-activo");
+  if(t) toggleFijoActivo(Number(t.dataset.fila), t.checked);
+});
 
 $("entriesBody").addEventListener("click", (ev) => {
   const btn = ev.target.closest("[data-action]");
