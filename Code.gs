@@ -18,6 +18,7 @@
 const SHEET_GASTOS = "Gastos";
 const SHEET_CONFIG = "Config";
 const SHEET_FIJOS = "Fijos";
+const SHEET_INGRESOS = "Ingresos";
 
 const CAT_START_ROW = 11; // fila donde empieza la tabla de categorías en Config
 const CAT_MAX = 8;        // máximo de categorías (hasta la fila del total)
@@ -70,6 +71,14 @@ function doPost(e) {
       borrarFijo_(body);
       return jsonResponse({ ok: true });
     }
+    if (body.action === "agregarIngreso") {
+      agregarIngreso_(body);
+      return jsonResponse({ ok: true });
+    }
+    if (body.action === "borrarIngreso") {
+      borrarIngreso_(body);
+      return jsonResponse({ ok: true });
+    }
     appendGasto(body);
     return jsonResponse({ ok: true });
   } catch (err) {
@@ -95,7 +104,7 @@ function getConfig_() {
     ingresoMensual: Number(ingresoMensual) || 0,
     dia1: Number(dia1) || 10,
     dia2: Number(dia2) || 24,
-    modo: modo === "mensual" ? "mensual" : "quincenal",
+    modo: modo === "mensual" ? "mensual" : (modo === "manual" ? "manual" : "quincenal"),
     categorias: readCategorias_(sh)
   };
 }
@@ -113,7 +122,7 @@ function periodBounds_(today, cfg) {
   const year = today.getFullYear();
   const month = today.getMonth();
   let start, end, label;
-  if (cfg.modo === "mensual") {
+  if (cfg.modo === "mensual" || cfg.modo === "manual") {
     start = new Date(year, month, 1);
     end = new Date(year, month + 1, 0);
     label = currentMonthKey_(today);
@@ -147,7 +156,7 @@ function labelFor_(d, suffix) {
 function periodLabelForDate_(d, cfg) {
   const year = d.getFullYear();
   const month = d.getMonth();
-  if (cfg.modo === "mensual") {
+  if (cfg.modo === "mensual" || cfg.modo === "manual") {
     return currentMonthKey_(d);
   }
   const day = d.getDate();
@@ -252,7 +261,23 @@ function buildResumen() {
   const bounds = periodBounds_(today, cfg);
   const prevLabel = prevPeriodLabel_(bounds.label);
   const mk = currentMonthKey_(today);
-  const ingreso = cfg.modo === "mensual" ? cfg.ingresoMensual : cfg.ingreso;
+  const ingresoManual = cfg.modo === "manual";
+  let ingreso = cfg.modo === "mensual" ? cfg.ingresoMensual : cfg.ingreso;
+  const ingresosList = [];
+  if (ingresoManual) {
+    ingreso = 0;
+    getIngresos_().forEach(en => {
+      if (periodLabelForDate_(en.fecha, cfg) !== bounds.label) return;
+      ingreso += en.monto;
+      ingresosList.push({
+        fila: en.fila,
+        fecha: Utilities.formatDate(en.fecha, tz, "dd/MM"),
+        fechaISO: Utilities.formatDate(en.fecha, tz, "yyyy-MM-dd"),
+        monto: en.monto,
+        nota: en.nota
+      });
+    });
+  }
 
   const diasTotales = Math.round((bounds.end - bounds.start) / 86400000) + 1;
   const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -318,11 +343,13 @@ function buildResumen() {
     }));
 
   return {
-    periodoLabel: cfg.modo === "mensual"
+    periodoLabel: (cfg.modo === "mensual" || cfg.modo === "manual")
       ? "Mes de " + MESES_ES[today.getMonth()] + " " + today.getFullYear()
       : "Quincena " + cfg.dia1 + "–" + cfg.dia2,
     rangoTexto: Utilities.formatDate(bounds.start, tz, "dd MMM") + " – " + Utilities.formatDate(bounds.end, tz, "dd MMM"),
     ingreso: ingreso,
+    ingresoManual: ingresoManual,
+    ingresos: ingresosList.slice().reverse(),
     gastado: gastado,
     prevGastado: prevGastado,
     deltaGastado: deltaGastado,
@@ -391,7 +418,7 @@ function guardarConfig_(body) {
   const ingresoMensual = Number(body.ingresoMensual) || 0;
   const dia1 = Number(body.dia1) || 10;
   const dia2 = Number(body.dia2) || 24;
-  const modo = body.modo === "mensual" ? "mensual" : "quincenal";
+  const modo = body.modo === "mensual" ? "mensual" : (body.modo === "manual" ? "manual" : "quincenal");
   const cats = (body.categorias || [])
     .map(c => ({ nombre: String(c.nombre || "").trim(), presupuesto: Number(c.presupuesto) || 0 }))
     .filter(c => c.nombre);
@@ -451,6 +478,49 @@ function editarFijo_(body) {
 function borrarFijo_(body) {
   const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_FIJOS);
   if (!sh) throw new Error("no hay gastos fijos");
+  const fila = Number(body.fila);
+  if (!fila || fila < 2) throw new Error("fila inválida");
+  sh.deleteRow(fila);
+}
+
+/* ---------------- Ingresos manuales ---------------- */
+
+function getIngresos_() {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_INGRESOS);
+  if (!sh) return [];
+  const lastRow = sh.getLastRow();
+  if (lastRow < 2) return [];
+  const data = sh.getRange(2, 1, lastRow - 1, 4).getValues();
+  const out = [];
+  data.forEach((row, i) => {
+    const fecha = row[1];
+    const monto = Number(row[2]) || 0;
+    if (!(fecha instanceof Date) || !monto) return;
+    out.push({ fila: i + 2, fecha: fecha, monto: monto, nota: row[3] || "" });
+  });
+  return out;
+}
+
+function ensureIngresosSheet_() {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(SHEET_INGRESOS);
+  if (sh) return sh;
+  sh = ss.insertSheet(SHEET_INGRESOS);
+  sh.appendRow(["Marca temporal", "Fecha", "Monto", "Nota"]);
+  return sh;
+}
+
+function agregarIngreso_(body) {
+  const monto = Number(body.monto) || 0;
+  if (!monto || monto <= 0) throw new Error("monto inválido");
+  const fecha = new Date((body.fecha || currentMonthKey_(new Date()) + "-01") + "T00:00:00");
+  const nota = String(body.nota || "").trim();
+  ensureIngresosSheet_().appendRow([new Date(), fecha, monto, nota]);
+}
+
+function borrarIngreso_(body) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(SHEET_INGRESOS);
+  if (!sh) throw new Error("no hay ingresos");
   const fila = Number(body.fila);
   if (!fila || fila < 2) throw new Error("fila inválida");
   sh.deleteRow(fila);

@@ -162,6 +162,14 @@ function renderSummary(data){
     perDia.textContent = "";
   }
 
+  const ingCard = $("ingresosCard");
+  if(data.ingresoManual){
+    ingCard.style.display = "block";
+    renderIngresos(data.ingresos || []);
+  }else{
+    ingCard.style.display = "none";
+  }
+
   if(data.categorias && data.categorias.length){
     $("catCard").style.display = "block";
     const body = $("catBody");
@@ -470,11 +478,14 @@ function renderConfigForm(data){
 }
 
 function setModoUI(modo){
+  const manual = modo === "manual";
   const mensual = modo === "mensual";
-  $("cfgIngresoField").style.display = mensual ? "none" : "";
+  $("cfgIngresoField").style.display = (mensual || manual) ? "none" : "";
   $("cfgIngresoMesField").style.display = mensual ? "" : "none";
-  $("cfgDia2Field").style.display = mensual ? "none" : "";
+  $("cfgDia1Field").style.display = manual ? "none" : "";
+  $("cfgDia2Field").style.display = (mensual || manual) ? "none" : "";
   $("cfgDia1Label").textContent = mensual ? "Día de cobro" : "Día de cobro 1";
+  $("cfgModoHint").style.display = manual ? "" : "none";
 }
 
 function addCatRow(nombre, presupuesto){
@@ -710,6 +721,100 @@ async function borrarFijo(fila){
   }
 }
 
+/* ---------------- Ingresos manuales ---------------- */
+
+function renderIngresos(list){
+  const body = $("ingresosBody");
+  body.innerHTML = "";
+  if(!list.length){
+    body.innerHTML = `<div class="empty"><div>Sin ingresos este mes</div><div class="empty-hint">Cada vez que cobres, anotá tu ingreso.</div></div>`;
+    return;
+  }
+  list.forEach(en => {
+    const div = document.createElement("div");
+    div.className = "entry";
+    div.innerHTML = `
+      <div class="entry-left">
+        <span class="entry-cat">Ingreso</span>
+        <span class="entry-meta">${en.fecha}${en.nota ? " · " + en.nota : ""}</span>
+      </div>
+      <div class="entry-right">
+        <span class="entry-amt pos">${fmt(en.monto)}</span>
+        <button type="button" class="btn-icon danger" data-ingreso-del="${en.fila}" aria-label="Borrar">✕</button>
+      </div>
+    `;
+    body.appendChild(div);
+  });
+}
+
+function openIngresoForm(){
+  $("ingresoMonto").value = "";
+  $("ingresoFecha").value = todayISO();
+  $("ingresoNota").value = "";
+  $("ingresoMsg").textContent = "";
+  $("ingresoMsg").className = "msg";
+  $("ingresoOverlay").classList.add("show");
+}
+
+async function saveIngreso(){
+  const url = getScriptUrl();
+  const msg = $("ingresoMsg");
+  msg.textContent = "";
+  msg.className = "msg";
+  if(!url){
+    msg.textContent = "Primero conectá tu Google Sheet.";
+    msg.className = "msg err";
+    return;
+  }
+  const monto = parseFloat($("ingresoMonto").value);
+  if(!monto || monto <= 0){
+    msg.textContent = "Ingresá un monto válido.";
+    msg.className = "msg err";
+    return;
+  }
+  const btn = $("btnSaveIngreso");
+  btn.disabled = true;
+  btn.textContent = "Guardando…";
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({
+        action: "agregarIngreso",
+        monto: monto,
+        fecha: $("ingresoFecha").value || todayISO(),
+        nota: $("ingresoNota").value || ""
+      })
+    });
+    $("ingresoOverlay").classList.remove("show");
+    loadSummary();
+    showToast("Ingreso anotado · " + fmt(monto));
+    haptic();
+  }catch(err){
+    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.className = "msg err";
+  }finally{
+    btn.disabled = false;
+    btn.textContent = "Guardar";
+  }
+}
+
+async function borrarIngreso(fila){
+  const url = getScriptUrl();
+  if(!url) return;
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: {"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ action: "borrarIngreso", fila: fila })
+    });
+    loadSummary();
+    showToast("Ingreso borrado");
+  }catch(err){
+    showToast("No se pudo borrar", false);
+  }
+}
+
 rebuildChips();
 $("fecha").value = todayISO();
 
@@ -745,6 +850,14 @@ $("btnSaveEdit").addEventListener("click", saveEdit);
 $("btnCloseEdit").addEventListener("click", closeEdit);
 $("btnConfirmDelete").addEventListener("click", confirmDelete);
 $("btnCancelDelete").addEventListener("click", closeDelete);
+$("btnAddIngreso").addEventListener("click", openIngresoForm);
+$("btnSaveIngreso").addEventListener("click", saveIngreso);
+$("btnCloseIngreso").addEventListener("click", () => $("ingresoOverlay").classList.remove("show"));
+
+$("ingresosBody").addEventListener("click", (ev) => {
+  const del = ev.target.closest("[data-ingreso-del]");
+  if(del) borrarIngreso(Number(del.dataset.ingresoDel));
+});
 
 $("cfgCats").addEventListener("click", (ev) => {
   const del = ev.target.closest(".cfg-del");

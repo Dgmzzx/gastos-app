@@ -73,6 +73,12 @@
     </div>
   </div>
 
+  <div class="card" id="ingresosCard" style="display:none;">
+    <h2>Ingresos del período</h2>
+    <button class="submit" id="btnAddIngreso">Anotar ingreso</button>
+    <div id="ingresosBody"></div>
+  </div>
+
   <div class="card" id="catCard" style="display:none;">
     <h2>Por categoría</h2>
     <div id="catBody"></div>
@@ -124,8 +130,10 @@
           <select id="cfgModo">
             <option value="quincenal">Quincenal (2 cobros por mes)</option>
             <option value="mensual">Mensual (1 cobro por mes)</option>
+            <option value="manual">Sin día fijo (ingreso manual)</option>
           </select>
         </div>
+        <p class="hint" id="cfgModoHint" style="display:none;">Cada vez que cobres, anotá tu ingreso desde la pantalla principal.</p>
         <div class="row2">
           <div class="field" id="cfgIngresoField">
             <label for="cfgIngreso">Ingreso quincenal</label>
@@ -137,7 +145,7 @@
           </div>
         </div>
         <div class="row2">
-          <div class="field">
+          <div class="field" id="cfgDia1Field">
             <label for="cfgDia1" id="cfgDia1Label">Día de cobro 1</label>
             <input type="number" id="cfgDia1" min="1" max="28">
           </div>
@@ -234,6 +242,29 @@
     <p id="deleteText"></p>
     <button class="submit danger" id="btnConfirmDelete">Borrar</button>
     <button class="close" id="btnCancelDelete">Cancelar</button>
+  </div>
+</div>
+
+<div class="overlay" id="ingresoOverlay">
+  <div class="sheet">
+    <h2>Anotar ingreso</h2>
+    <div class="field">
+      <label for="ingresoMonto">Monto</label>
+      <input type="number" id="ingresoMonto" inputmode="decimal" min="0" step="0.01">
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label for="ingresoFecha">Fecha</label>
+        <input type="date" id="ingresoFecha">
+      </div>
+      <div class="field">
+        <label for="ingresoNota">Nota</label>
+        <input type="text" id="ingresoNota" placeholder="opcional">
+      </div>
+    </div>
+    <button class="submit" id="btnSaveIngreso">Guardar</button>
+    <button class="close" id="btnCloseIngreso">Cancelar</button>
+    <div class="msg" id="ingresoMsg"></div>
   </div>
 </div>
 

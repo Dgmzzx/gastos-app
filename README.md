@@ -11,7 +11,9 @@ subís a GitHub Pages gratis, y el "servidor" es un Google Apps Script gratis.
    Debe quedar con las pestañas **Config** y **Gastos**.
 3. En **Config**, completá tu ingreso quincenal fijo (celda B4) y, si
    querés, un presupuesto por categoría. Si cobrás **una vez por mes**,
-   poné tu ingreso mensual en B5 y el modo en B8 (`mensual`). Todo esto
+   poné tu ingreso mensual en B5 y el modo en B8 (`mensual`). Si no tenés
+   día de cobro fijo (cobrás por semana, por ejemplo), poné `manual` en B8:
+   ahí el ingreso se anota desde la web cada vez que cobrás. Todo esto
    también se puede editar desde la web (ícono ⚙ > "Ingreso y presupuestos").
 
 ## Paso 2 — Conectar el backend (Google Apps Script)
