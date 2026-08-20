@@ -72,6 +72,24 @@ function getScriptUrl(){
   return localStorage.getItem(LS_URL_KEY) || "";
 }
 
+async function postJson(url, payload){
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify(payload)
+  });
+  let data;
+  try{
+    data = await res.json();
+  }catch(e){
+    throw new Error("respuesta inválida del servidor");
+  }
+  if(!data || data.ok !== true){
+    throw new Error((data && data.error) || "error del servidor");
+  }
+  return data;
+}
+
 function openSettings(){
   $("scriptUrl").value = getScriptUrl();
   $("cfgCurrency").value = getCurrency();
@@ -256,11 +274,7 @@ async function registrarFijo(nombre, btn){
   btn.disabled = true;
   btn.textContent = "Guardando…";
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({action:"registrarFijo", nombre: nombre})
-    });
+    await postJson(url, {action:"registrarFijo", nombre: nombre});
     loadSummary();
   }catch(err){
     btn.disabled = false;
@@ -333,24 +347,20 @@ async function saveEdit(){
   btn.textContent = "Guardando…";
 
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({
-        action: "editarGasto",
-        fila: editingFila,
-        monto: monto,
-        categoria: editCat,
-        medio: editMed || "",
-        fecha: $("editFecha").value || todayISO(),
-        nota: $("editNota").value || ""
-      })
+    await postJson(url, {
+      action: "editarGasto",
+      fila: editingFila,
+      monto: monto,
+      categoria: editCat,
+      medio: editMed || "",
+      fecha: $("editFecha").value || todayISO(),
+      nota: $("editNota").value || ""
     });
     closeEdit();
     loadSummary();
     showToast("Gasto actualizado");
   }catch(err){
-    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.textContent = err.message || "No se pudo guardar. Revisá tu conexión.";
     msg.classList.add("err");
   }finally{
     btn.disabled = false;
@@ -376,11 +386,7 @@ async function confirmDelete(){
   btn.disabled = true;
   btn.textContent = "Borrando…";
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({action: "borrarGasto", fila: pendingDeleteFila})
-    });
+    await postJson(url, {action: "borrarGasto", fila: pendingDeleteFila});
     closeDelete();
     loadSummary();
     showToast("Gasto borrado");
@@ -426,11 +432,7 @@ async function submitGasto(){
   btn.textContent = "Guardando…";
 
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify(payload)
-    });
+    await postJson(url, payload);
     showToast(" Gasto anotado · " + fmt(monto));
     haptic();
     pendingPop = true;
@@ -439,7 +441,7 @@ async function submitGasto(){
     $("fecha").value = todayISO();
     loadSummary();
   }catch(err){
-    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.textContent = err.message || "No se pudo guardar. Revisá tu conexión.";
     msg.classList.add("err");
   }finally{
     btn.disabled = false;
@@ -557,18 +559,13 @@ async function saveConfig(){
   btn.disabled = true;
   btn.textContent = "Guardando…";
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({ action:"guardarConfig", modo, ingreso, ingresoMensual, dia1, dia2, categorias: cats })
-    });
-    msg.textContent = "Configuración guardada.";
-    msg.className = "msg ok";
+    await postJson(url, { action:"guardarConfig", modo, ingreso, ingresoMensual, dia1, dia2, categorias: cats });
+    closeSettings();
     loadSettingsData();
     loadSummary();
     showToast("Configuración guardada");
   }catch(err){
-    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.textContent = err.message || "No se pudo guardar. Revisá tu conexión.";
     msg.className = "msg err";
   }finally{
     btn.disabled = false;
@@ -614,18 +611,14 @@ async function toggleFijoActivo(fila, activo){
   const f = fijosCfg.find(x => x.rowIndex === fila);
   if(!f) return;
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({
-        action: "editarFijo",
-        fila: fila,
-        nombre: f.nombre,
-        monto: f.monto,
-        categoria: f.categoria,
-        dia: f.dia,
-        activo: activo
-      })
+    await postJson(url, {
+      action: "editarFijo",
+      fila: fila,
+      nombre: f.nombre,
+      monto: f.monto,
+      categoria: f.categoria,
+      dia: f.dia,
+      activo: activo
     });
     f.activo = activo;
     loadSummary();
@@ -685,17 +678,13 @@ async function saveFijo(){
   btn.disabled = true;
   btn.textContent = "Guardando…";
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify(payload)
-    });
+    await postJson(url, payload);
     $("fijoOverlay").classList.remove("show");
     loadSettingsData();
     loadSummary();
     showToast(editingFijoFila ? "Gasto fijo actualizado" : "Gasto fijo agregado");
   }catch(err){
-    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.textContent = err.message || "No se pudo guardar. Revisá tu conexión.";
     msg.className = "msg err";
   }finally{
     btn.disabled = false;
@@ -707,16 +696,12 @@ async function borrarFijo(fila){
   const url = getScriptUrl();
   if(!url) return;
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({ action: "borrarFijo", fila: fila })
-    });
+    await postJson(url, { action: "borrarFijo", fila: fila });
     loadSettingsData();
     loadSummary();
     showToast("Gasto fijo borrado");
   }catch(err){
-    $("cfgFijosMsg").textContent = "No se pudo borrar.";
+    $("cfgFijosMsg").textContent = err.message || "No se pudo borrar.";
     $("cfgFijosMsg").className = "msg err";
   }
 }
@@ -776,22 +761,18 @@ async function saveIngreso(){
   btn.disabled = true;
   btn.textContent = "Guardando…";
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({
-        action: "agregarIngreso",
-        monto: monto,
-        fecha: $("ingresoFecha").value || todayISO(),
-        nota: $("ingresoNota").value || ""
-      })
+    await postJson(url, {
+      action: "agregarIngreso",
+      monto: monto,
+      fecha: $("ingresoFecha").value || todayISO(),
+      nota: $("ingresoNota").value || ""
     });
     $("ingresoOverlay").classList.remove("show");
     loadSummary();
     showToast("Ingreso anotado · " + fmt(monto));
     haptic();
   }catch(err){
-    msg.textContent = "No se pudo guardar. Revisá tu conexión.";
+    msg.textContent = err.message || "No se pudo guardar. Revisá tu conexión.";
     msg.className = "msg err";
   }finally{
     btn.disabled = false;
@@ -803,15 +784,11 @@ async function borrarIngreso(fila){
   const url = getScriptUrl();
   if(!url) return;
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: {"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify({ action: "borrarIngreso", fila: fila })
-    });
+    await postJson(url, { action: "borrarIngreso", fila: fila });
     loadSummary();
     showToast("Ingreso borrado");
   }catch(err){
-    showToast("No se pudo borrar", false);
+    showToast(err.message || "No se pudo borrar", false);
   }
 }
 

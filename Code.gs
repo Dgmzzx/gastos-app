@@ -79,6 +79,7 @@ function doPost(e) {
       borrarIngreso_(body);
       return jsonResponse({ ok: true });
     }
+    if (body.action) throw new Error("acción desconocida: " + body.action);
     appendGasto(body);
     return jsonResponse({ ok: true });
   } catch (err) {
